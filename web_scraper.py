@@ -1,6 +1,6 @@
 """
 Author: Tyler J. Burgee
-Date: 13 February 2023
+Date: 19 February 2023
 Course: CIS 321 - Data & File Structure
 """
 
@@ -33,6 +33,8 @@ class ShepherdEmployeeWebScraper:
         The employees retrieved from the webpage
     fieldnames : list
         The names of the fields that will be retreived from the webpage
+    buildings : list
+        The names of various buildings at Shepherd University
 
     Methods
     -------
@@ -59,7 +61,8 @@ class ShepherdEmployeeWebScraper:
         self.soup = BeautifulSoup(self.page.content, "html.parser")
 
         self.employee_list = []
-        self.field_names = ["Name", "Title", "Email"]
+        self.field_names = ["Name", "Title", "Email", "Phone", "Office", "Bio"]
+        self.buildings = ["CCA", "Stutzman", "Byrd", "Snyder", "BY", "SN", "Knutti"]
 
     def __str__(self) -> str:
         """Returns the string representation of a ShepherdEmployeeWebScraper object"""
@@ -67,16 +70,33 @@ class ShepherdEmployeeWebScraper:
 
     def add_employee(self, data: list) -> None:
         """Adds a new employee to employee list"""
+        # EVERY EMPLOYEE HAS NAME AND TITLE
         name = data[0]
         title = data[1]
-        email = data[2]
-        if "@shepherd.edu" not in email:
-            email = None
+
+        # NOT EVERY EMPLOYEE HAS EMAIL, PHONE, OFFICE, OR BIO
+        email = None
+        phone = None
+        office = None
+        bio = None
+
+        for data_field in data:
+            if "@shepherd.edu" in data_field:
+                email = data_field
+            elif len(data_field) == 12 and "-" in data_field:
+                phone = data_field
+            elif len(data_field) < 50 and any(item in data_field for item in self.buildings):
+                office = data_field
+            elif data_field != name and data_field != title and data_field != email and data_field != phone and data_field != office:
+                bio = data_field
 
         employee = {
             self.field_names[0] : name,
             self.field_names[1] : title,
-            self.field_names[2] : email
+            self.field_names[2] : email,
+            self.field_names[3] : phone,
+            self.field_names[4] : office,
+            self.field_names[5] : bio
         }
         self.employee_list.append(employee)
 
@@ -101,11 +121,8 @@ class ShepherdEmployeeWebScraper:
             # GET EMPLOYEE NAME
             data.append(employee_name[0].text.strip())
             for line in employee_info:
-                # GET EMPLOYEE TITLE AND EMAIL
-                if len(data) <= 2:
-                    data.append(line.text.strip().split("\t")[0])
-                else:
-                    break
+                # GET ADDITIONAL EMPLOYEE DATA
+                data.append(line.text.strip().split("\t")[0])
             employee_data.append(data)
 
         return employee_data
@@ -117,12 +134,12 @@ class ShepherdEmployeeWebScraper:
         return results
 
 if __name__ == "__main__":
-    shepherd_departments = ["cme", "biology", "theater", "facilities"]
+    shepherd_departments = ["cme", "biology", "theater", "facilities", "history"]
 
     while True:
         # GET USER INPUT
         department = input("Enter Shepherd Department:\n" +
-                           "Options - cme, biology, theater, facilities, or QUIT\n> ")
+                           "Options - cme, biology, theater, facilities, history, or QUIT\n> ")
         if department.casefold() in shepherd_departments:
             # INSTANTIATE ShepherdEmployeeWebScraper OBJECT
             url = "https://www.shepherd.edu/{}/staff".format(department)
